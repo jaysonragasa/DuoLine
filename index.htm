@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
@@ -633,37 +634,6 @@
                 ctx.restore();
             }
 
-            // 4. Stiff Hinge Pressure Dead-Pixel Ink Blob (Occurs where the hinge pops/cracks the inner OLED layer)
-            if (blobPct > 0) {
-                const maxRadius = 65 * scale * blobPct;
-                ctx.save();
-
-                // Outer bruised OLED purple/blue halo
-                const bruiseGrad = ctx.createRadialGradient(creaseX, branchY, maxRadius * 0.2, creaseX, branchY, maxRadius * 1.45);
-                bruiseGrad.addColorStop(0, 'rgba(0, 0, 0, 0.98)');
-                bruiseGrad.addColorStop(0.55, 'rgba(8, 5, 20, 0.92)');
-                bruiseGrad.addColorStop(0.8, 'rgba(76, 29, 149, 0.45)');
-                bruiseGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-
-                ctx.fillStyle = bruiseGrad;
-                ctx.beginPath();
-                ctx.arc(creaseX, branchY, maxRadius * 1.45, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Irregular dead-pixel cluster around the hinge pinch point
-                ctx.fillStyle = '#030305';
-                for (let i = 0; i < 7; i++) {
-                    const angle = (i / 7) * Math.PI * 2 + 0.4;
-                    const ox = Math.cos(angle) * (maxRadius * 0.35);
-                    const oy = Math.sin(angle) * (maxRadius * 0.45);
-                    const r = maxRadius * (0.45 + (i % 3) * 0.15);
-                    ctx.beginPath();
-                    ctx.arc(creaseX + ox, branchY + oy, r, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-                ctx.restore();
-            }
-
             // Helper function to draw an authentic OLED voltage line defect
             function drawOledDefectLine(x1, y1, x2, y2, thickness, hexColor, isVertical, isDashed = false) {
                 const rgb = hexToRgb(hexColor);
@@ -829,6 +799,49 @@
                 ctx.beginPath();
                 ctx.arc(creaseX, branchY, flareRadius, 0, Math.PI * 2);
                 ctx.fill();
+                ctx.restore();
+            }
+
+            // 8. Stiff Hinge Pressure Dead-Pixel Ink Blob (Drawn LAST so dead pixels completely block all light & lines)
+            if (blobPct > 0) {
+                const maxRadius = 65 * scale * blobPct;
+                ctx.save();
+                ctx.globalCompositeOperation = 'source-over';
+
+                // Outer bruised OLED purple/blue halo around the dead zone
+                const bruiseGrad = ctx.createRadialGradient(creaseX, branchY, maxRadius * 0.25, creaseX, branchY, maxRadius * 1.35);
+                bruiseGrad.addColorStop(0, 'rgba(0, 0, 0, 1)');
+                bruiseGrad.addColorStop(0.55, 'rgba(4, 3, 10, 0.96)');
+                bruiseGrad.addColorStop(0.82, 'rgba(76, 29, 149, 0.45)');
+                bruiseGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+                ctx.fillStyle = bruiseGrad;
+                ctx.beginPath();
+                ctx.arc(creaseX, branchY, maxRadius * 1.35, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Irregular pitch-black dead-pixel cluster that masks out any lines or glow underneath
+                ctx.fillStyle = '#000000';
+                for (let i = 0; i < 7; i++) {
+                    const angle = (i / 7) * Math.PI * 2 + 0.4;
+                    const ox = Math.cos(angle) * (maxRadius * 0.35);
+                    const oy = Math.sin(angle) * (maxRadius * 0.45);
+                    const r = maxRadius * (0.45 + (i % 3) * 0.15);
+                    ctx.beginPath();
+                    ctx.arc(creaseX + ox, branchY + oy, r, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Crisp micro-pixelated dead edge along the perimeter
+                for (let i = 0; i < 16; i++) {
+                    const angle = (i / 16) * Math.PI * 2;
+                    const dist = maxRadius * (0.62 + ((i * 7) % 5) * 0.06);
+                    const px = creaseX + Math.cos(angle) * dist;
+                    const py = branchY + Math.sin(angle) * dist;
+                    const cell = Math.max(2, 4 * scale);
+                    ctx.fillRect(px - cell / 2, py - cell / 2, cell, cell);
+                }
+
                 ctx.restore();
             }
         }
